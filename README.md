@@ -23,6 +23,14 @@ if run programmatically: `--user username:token`.
 
 Use `--dryrun` to test the API payload first if you wish.
 
+The following environment variables can be used instead of providing args:
+```
+BB_USER
+BB_WORKSPACE
+BB_REPO
+BB_BRANCH
+```
+
 ## Usage
 ### Pipeline associated with a branch
 For example, you have the following pipeline:
