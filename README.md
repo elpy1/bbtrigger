@@ -16,7 +16,7 @@ variables, both secure (masked) and standard key:value (non-masked).
 
 To set a variable as secure ':s' is appended: `--var key:value:s`
 
-This script uses Bitbucket's application tokens for authentication.
+This script uses Bitbucket's app authorisation tokens for authentication.
 You can input this interactively by only specifying your username
 with `--user`. Alternatively, specify both username and password/token
 if run programmatically: `--user username:token`.
@@ -24,7 +24,7 @@ if run programmatically: `--user username:token`.
 Use `--dryrun` to test the API payload first if you wish.
 
 ## Usage
-#### Pipeline associated with a branch
+### Pipeline associated with a branch
 For example, you have the following pipeline:
 ```
 pipelines:
@@ -62,7 +62,7 @@ To trigger the pipeline:
 bbtrigger: success: response 201 for url: https://api.bitbucket.org/2.0/repositories/myorg/myrepo/pipelines/
 ```
 
-#### Custom pipeline
+### Custom pipeline
 Using the below custom pipeline as an example:
 ```
 pipelines:
