@@ -51,7 +51,7 @@ pipelines:
 ```
 Dryrun mode:
 ```
-[elpy@testbox bbtrigger]$ bbtrigger --user user:token --workspace myorg --repo myrepo --branch dev --dryrun
+[elpy@testbox ~]$ bbtrigger --user user:token --workspace myorg --repo myrepo --branch dev --dryrun
 
 url: https://api.bitbucket.org/2.0/repositories/myorg/myrepo/pipelines/
 user: user
