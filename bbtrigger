@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import requests
+
+from getpass import getpass
+from textwrap import dedent
+
+def process_args():
+    ap = argparse.ArgumentParser(
+        prog='bbtrigger',
+        description='trigger a bitbucket pipeline',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=dedent('''
+            A tool that uses the Bitbucket Cloud REST API[0] to trigger pipelines.
+
+            You might find this useful if you need to programmatically trigger
+            a pipeline e.g. from within a script or a different repo/pipeline.
+
+            Supports pipelines associated with Bitbucket branches, as well as
+            custom pipelines. For custom pipelines you can also specify custom
+            variables, both secure (masked) and standard key:value (non-masked).
+            To set a variable as secure ':s' is appended: --var key:value:s
+
+            This script uses Bitbucket's application tokens for authentication.
+            You can input this interactively by only specifying your username
+            with --user. Alternatively, specify both username and password/token
+            if run programmatically: --user username:token
+
+            Use --dryrun to test the API payload.
+
+            For more information see the README[1].
+
+            [0] https://developer.atlassian.com/bitbucket/api/2/reference/resource/
+            [1] https://github.com/elpy1/bbtrigger
+            '''
+        )
+    )
+    ap.add_argument('-u', '--user', default=os.getenv('BB_USER'))
+    ap.add_argument('-w', '--workspace', default=os.getenv('BB_WORKSPACE'))
+    ap.add_argument('-r', '--repo', default=os.getenv('BB_REPO'))
+    ap.add_argument('-b', '--branch', default=os.getenv('BB_BRANCH'))
+    ap.add_argument('--custom')
+    ap.add_argument('--var', action='append')
+    ap.add_argument('--dryrun', action='store_true')
+    args = vars(ap.parse_args())
+
+    if not all([args.get(a) for a in ['user', 'workspace', 'repo', 'branch']]):
+        raise SystemExit('error: missing required argument')
+    if not len(args['user'].split(':')) in (1, 2):
+        raise SystemExit('error: user must be in format: \'username[:token]\'')
+    if not args.get('custom') and args.get('var'):
+        raise SystemExit('error: var not allowed for non-custom pipelines')
+    if args.get('var'):
+        for var in args['var']:
+            if not len(var.rsplit(':s', 1)[0].split(':', 1)) == 2:
+                raise SystemExit('variable must be in format \'key:value[:s]\'')
+    return args
+
+def main():
+    args = process_args()
+
+    tmpu = args['user'].split(':')
+    user = tmpu[0]
+    token = tmpu[1] if len(tmpu) == 2 else getpass(prompt='token: ')
+
+    api_base = 'api.bitbucket.org/2.0'
+    url = f"https://{api_base}/repositories/{args['workspace']}/{args['repo']}/pipelines/"
+
+    payload = dict(
+        target = dict(
+            ref_type = 'branch',
+            type = 'pipeline_ref_target',
+            ref_name = args['branch']))
+
+    if args['custom']:
+        payload['target']['selector'] = dict(
+            type = 'custom',
+            pattern = args['custom'])
+        if args['var']:
+            payload['variables'] = []
+            for v in args['var']:
+                parts = v.rsplit(':s', 1)[0].split(':', 1)
+                var = dict(key = parts[0], value = parts[1])
+                if v[-2:] == ':s':
+                    var['secured'] = True
+                payload['variables'].append(var)
+
+    try:
+        if args.get('dryrun'):
+            print(f'\nurl: {url}\nuser: {user}\n'
+                  f'payload:\n{json.dumps(payload, indent=4)}')
+        else:
+            r = requests.post(url, json=payload, auth=(user, token))
+            if not r.ok: r.raise_for_status()
+            print(f'bbtrigger: success: response {r.status_code} for url: {r.url}')
+        exit(0)
+    except Exception as e:
+        raise SystemExit(f'bbtrigger: error: {e}')
+
+main()
